@@ -1,11 +1,11 @@
 import _ from 'lodash';
 import { Worker, parentPort } from 'node:worker_threads';
-import { Reply } from "zeromq"
+import { Router } from "zeromq"
 import { randomInt } from 'node:crypto';
 
 export default class QueueWorker {
     constructor() {
-        this.socket = new Reply({ receiveHighWaterMark: 1 });
+        this.socket = new Router({ receiveHighWaterMark: 1 });
     }
 
     async run() {
@@ -15,26 +15,26 @@ export default class QueueWorker {
 
         console.log(`worker is ready`);
 
-        for await (const [res] of this.socket) {
-            const task = JSON.parse(res);
+        for await (const [sender, pos, msg] of this.socket) {
+            const { uuid, text } = JSON.parse(msg);
             const words = _
-                .chain(task)
-                .get('text')
+                .chain(text)
                 .words()
                 .size()
                 .value();
             const fakeProcessingTime = randomInt(200, 2000);
 
             setTimeout(async () => {
-                console.log(`task: "${task.text}" (${words} words)`);
+                console.log(`task: "${text}" (${words} words)`);
 
                 const ok = words < 10;
 
                 if (ok) {
-                    await this.socket.send(Buffer.from(JSON.stringify({
-                        words,
-                        uuid: task.uuid
-                    })));
+                    await this.socket.send([
+                        sender,
+                        Buffer.from(''),
+                        Buffer.from(JSON.stringify({ uuid, words }))
+                    ]);
                 }
                 else {
                     this.stop();
@@ -43,10 +43,8 @@ export default class QueueWorker {
         }
     }
 
-    stop() {
+    async stop() {
         this.socket.close();
-
-        process.exit(1);
     }
 
     static spawn() {

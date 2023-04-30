@@ -8,15 +8,15 @@ const tasks = 10;
 for (let i = 0; i < tasks; i += 1) {
     const text = loremIpsum();
 
-    q.push({ text }, (err, words) => {
+    q.push({ text }, (err, result) => {
         if (err) {
             return console.error(`error: ${err.message}`);
         }
 
-        console.log(`${words} words processed`);
+        console.log(`${result.words} words processed`);
     });
 
-    console.log('task pushed');
+    console.log(`task #${i + 1} pushed`);
 }
 
 await q.run();

@@ -65,14 +65,13 @@ export default class QueueService {
     }
 
     async run() {
-        for await (const [pos, rep] of this.socket) {
-            if (pos.length > 0) continue;
-
-            const { words, uuid } = JSON.parse(rep);
+        for await (const [pos, msg] of this.socket) {
+            const { uuid, ...result } = JSON.parse(msg);
+            const cb = this.callbacks.get(uuid);
 
             this.cleanup(uuid);
 
-            _.attempt(this.callbacks.get(uuid), null, words);
+            _.attempt(cb, null, result);
         }
     }
 }
